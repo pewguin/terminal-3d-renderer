@@ -11,9 +11,3 @@ impl Point {
         Point { x, y }
     }
 }
-
-impl From<Vertex> for Point {
-    fn from(vertex: Vertex) -> Self {
-        Point { x: vertex.x.round() as i32, y: vertex.y.round() as i32 }
-    }
-}
