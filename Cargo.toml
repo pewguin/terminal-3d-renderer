@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-term_size = "1.0.0-beta1"
 termion = "4.0.5"
+once_cell = "1.21.3"

@@ -1,4 +1,5 @@
 use crate::geometry::rotation::Rotation;
+use crate::geometry::vector::Vector;
 use crate::geometry::vertex::Vertex;
 
 pub struct EulerRotation {
@@ -15,7 +16,7 @@ impl EulerRotation {
     }
 }
 impl Rotation for EulerRotation {
-    fn rotate(&self, v: Vertex) -> Vertex {
+    fn rotate_vector(&self, v: Vector) -> Vector {
         let v = v.rotate_x(self.x);
         let v = v.rotate_y(self.y);
         v.rotate_z(self.z)

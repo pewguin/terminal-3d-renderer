@@ -1,6 +1,9 @@
 mod rendering;
 mod geometry;
 mod math;
+mod debug;
+mod game;
+mod parser;
 
 use std::cmp::Ordering;
 use termion::{async_stdin, raw::IntoRawMode, terminal_size};
@@ -11,12 +14,19 @@ use std::time::Duration;
 use termion::event::Key;
 use termion::input::TermRead;
 use rendering::screen_buffer::ScreenBuffer;
+use crate::debug::debug_logger::{get_logs, log};
+use crate::game::move_mode::MoveMode;
 use crate::geometry::euler_rotation::EulerRotation;
+use crate::geometry::quaternion::Quaternion;
 use crate::geometry::triangle::Triangle;
+use crate::geometry::vector::Vector;
 use crate::geometry::vertex::Vertex;
-use crate::math::camera::Camera;
+use rendering::camera::Camera;
+use crate::geometry::mesh::Mesh;
+use crate::math::projection_type::ProjectionType;
 use crate::rendering::point::Point;
 use crate::rendering::rasterizer::draw_triangle;
+use crate::rendering::render_buffer::RenderBuffer;
 use crate::rendering::stroke::Stroke;
 
 const FRAME_TIME: Duration = Duration::from_micros(16_667);
@@ -26,86 +36,125 @@ fn main() {
 
     panic::set_hook(Box::new(|panic_info| {
         write!(std::io::stdout(), "{}", termion::screen::ToMainScreen).unwrap();
+        println!("{}", panic_info);
     }));
 
     write!(stdout, "{}{}", termion::cursor::Hide, termion::screen::ToAlternateScreen).unwrap();
 
     let term_dims = terminal_size().expect("unrecoverable: failed to obtain terminal dimensions");
-    let mut buffer = ScreenBuffer::new(term_dims.0, term_dims.1);
+    let mut screen_buffer = ScreenBuffer::new(term_dims.0, term_dims.1);
 
-    for y in 0..buffer.height {
-        for x in 0..buffer.width {
-            buffer.set_pixel(x, y, Stroke::new([255, 255, 255], ' '));
+    for y in 0..screen_buffer.height {
+        for x in 0..screen_buffer.width {
+            screen_buffer.set_pixel(x, y, Stroke::new([255, 255, 255], ' '));
         }
     }
     
-    let cam = Camera::new(Vertex::new(0.0, 0.0, 0.0), buffer.width, buffer.height);
+    let mut cam = Camera::new(Vertex::new(0.0, 0.0, -50.0), screen_buffer.width, screen_buffer.height);
+    let mut render_buffer = RenderBuffer::new();
 
-    let sz = 20.0;
+    let size = 20.0;
     let mut time = 0.0;
-    let mut rot = EulerRotation::zero();
     let mut d_rot = 0.1;
+    let mut d_pos = 1.0;
+    let mut prj_type = ProjectionType::Perspective;
+    let mut mv_mode = MoveMode::Rotation;
+
+    let v = (
+        Vertex::new(size, size, size),
+        Vertex::new(-size, -size, size),
+        Vertex::new(-size, size, -size),
+        Vertex::new(size, -size, -size),
+    );
+    let mut tetrahedron = Mesh::new(vec![
+        Triangle::from_vertexes(
+            v.0, v.1, v.2,
+            Stroke::new([255, 0, 0], '█')),
+        Triangle::from_vertexes(
+            v.0, v.3, v.1,
+            Stroke::new([0, 255, 0], '█')),
+        Triangle::from_vertexes(
+            v.2, v.3, v.0,
+            Stroke::new([0, 0, 255], '█')),
+        Triangle::from_vertexes(
+            v.2, v.1, v.3,
+            Stroke::new([255, 0, 255], '█'))]
+    );
 
     'frame: loop {
-        let mut tris: Vec<Triangle> = Vec::new();
-
-        let v = (
-            Vertex::new(sz, sz, sz),
-            Vertex::new(-sz, -sz, sz),
-            Vertex::new(-sz, sz, -sz),
-            Vertex::new(sz, -sz, -sz),
-        );
-        tris.push(
-            Triangle::from_vertexes(
-                v.0, v.2, v.1,
-                Stroke::new([255, 0, 0], '█')));
-        tris.push(
-            Triangle::from_vertexes(
-                v.0, v.1, v.3,
-                Stroke::new([0, 255, 0], '█')));
-        tris.push(
-            Triangle::from_vertexes(
-                v.2, v.0, v.3,
-                Stroke::new([0, 0, 255], '█')));
-        tris.push(
-            Triangle::from_vertexes(
-                v.2, v.3, v.1,
-                Stroke::new([255, 0, 255], '█')));
-
-        tris.sort_by(|t, o| {
-            if t.avg_z() > o.avg_z() {
-                return Ordering::Greater
-            }
-            else if t.avg_z() < o.avg_z() {
-                return Ordering::Less
-            }
-            Ordering::Equal
-        });
-        for tri in tris {
-            let tri = tri.rotate(&rot);
-            draw_triangle(&mut buffer, &tri, &cam);
-        }
-        buffer.fill_string(format!("{}", time).as_str(), Point::new(1, (buffer.height-2) as i32));
-        
-        if let Some(Ok(c)) = stdin.next() {
-            match c {
+        let mut d_rot_t = EulerRotation::zero();
+        let mut d_pos_t = Vector::zero();
+        while let Some(Ok(key)) = stdin.next() {
+            match key {
                 Key::Ctrl('c') => break 'frame,
-                Key::Char('d') => rot.y += d_rot,
-                Key::Char('a') => rot.y -= d_rot,
-                Key::Char('w') => rot.x += d_rot,
-                Key::Char('s') => rot.x -= d_rot,
-                Key::Char('e') => rot.z += d_rot,
-                Key::Char('q') => rot.z -= d_rot,
-                Key::Up => d_rot += 0.01,
-                Key::Down => d_rot -= 0.01,
+                Key::Char('d') => {
+                    match mv_mode {
+                        MoveMode::Rotation => d_rot_t.y += d_rot,
+                        MoveMode::Movement => d_pos_t.x += d_pos
+                    }
+                },
+                Key::Char('a') => {
+                    match mv_mode {
+                        MoveMode::Rotation => d_rot_t.y -= d_rot,
+                        MoveMode::Movement => d_pos_t.x -= d_pos
+                    }
+                },
+                Key::Char('w') => {
+                    match mv_mode {
+                        MoveMode::Rotation => d_rot_t.x += d_rot,
+                        MoveMode::Movement => d_pos_t.z += d_pos
+                    }
+                },
+                Key::Char('s') => {
+                    match mv_mode {
+                        MoveMode::Rotation => d_rot_t.x -= d_rot,
+                        MoveMode::Movement => d_pos_t.z -= d_pos
+                    }
+                },
+                Key::Char('e') => d_rot_t.z += d_rot,
+                Key::Char('q') => d_rot_t.z -= d_rot,
+                Key::Char('p') => prj_type = match prj_type {
+                    ProjectionType::Perspective => ProjectionType::Orthographic,
+                    ProjectionType::Orthographic => ProjectionType::Perspective,
+                },
+                Key::Up => {
+                    match mv_mode {
+                        MoveMode::Rotation => d_rot += 0.01,
+                        MoveMode::Movement => d_pos += 1.0,
+                    }
+                },
+                Key::Down => {
+                    match mv_mode {
+                        MoveMode::Rotation => d_rot -= 0.01,
+                        MoveMode::Movement => d_pos += 1.0,
+                    }
+                }
+
+                Key::Char('m') => mv_mode = match mv_mode {
+                    MoveMode::Rotation => MoveMode::Movement,
+                    MoveMode::Movement => MoveMode::Rotation,
+                },
                 _ => {}
             }
         }
-        
-        buffer.fill_string(format!("{}", d_rot).as_str(), Point::new(1, (buffer.height-1) as i32));
-        buffer.write(&mut stdout);
-        buffer.clear();
-        
+
+        cam.mv(d_pos_t);
+        tetrahedron = tetrahedron.rotate(&d_rot_t);
+        render_buffer.add_mesh_worldspace(&tetrahedron, &cam);
+        render_buffer.flush_meshes_to_buffer(&mut screen_buffer, &prj_type, &cam);
+        render_buffer.clear();
+
+        log(0, d_rot);
+        log(1, d_pos);
+        log(2, &prj_type);
+        log(3, &mv_mode);
+
+        for l in get_logs(screen_buffer.height) {
+            screen_buffer.fill_string(l.1.as_str(), Point::new(1, l.0 - 1));
+        }
+        screen_buffer.write(&mut stdout);
+        screen_buffer.clear();
+
         sleep(FRAME_TIME);
         time += FRAME_TIME.as_secs_f32();
     }

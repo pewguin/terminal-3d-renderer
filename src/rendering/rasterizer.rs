@@ -1,12 +1,13 @@
 use crate::geometry::vertex::Vertex;
 use crate::geometry::triangle::Triangle;
-use crate::math::camera::Camera;
+use crate::rendering::camera::Camera;
 use crate::math::geometry::signed_area;
+use crate::math::projection_type::ProjectionType;
 use crate::rendering::point::Point;
 use crate::rendering::screen_buffer::ScreenBuffer;
 
-pub fn draw_triangle(buf: &mut ScreenBuffer, tri: &Triangle, cam: &Camera) {
-    let verts = tri.verts.map(|v| cam.project(v));
+pub fn draw_triangle(buf: &mut ScreenBuffer, tri: &Triangle, cam: &Camera, prj_type: &ProjectionType) {
+    let verts = tri.verts.map(|v| cam.project(v, &prj_type));
     
     for y in 0..buf.height {
         for x in 0..buf.width {

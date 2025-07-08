@@ -1,2 +1,2 @@
 pub mod geometry;
-pub mod camera;
+pub mod projection_type;
