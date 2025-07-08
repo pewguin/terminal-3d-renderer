@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::ops;
-use crate::geometry::vector::Vector;
+use crate::math::vector::Vector;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Vertex {

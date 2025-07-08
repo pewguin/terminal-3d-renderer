@@ -1,8 +1,8 @@
 use std::ops;
-use crate::geometry::euler_rotation::EulerRotation;
-use crate::geometry::rotation::Rotation;
-use crate::geometry::vector::Vector;
-use crate::geometry::vertex::Vertex;
+use crate::math::euler_rotation::EulerRotation;
+use crate::math::rotation::Rotation;
+use crate::math::vector::Vector;
+use crate::math::vertex::Vertex;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Quaternion {
@@ -15,6 +15,14 @@ pub struct Quaternion {
 impl Quaternion {
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Quaternion {
         Quaternion { x, y, z, w }
+    }
+    pub fn from_euler_angles(x: f32, y: f32, z: f32) -> Quaternion {
+        let e = EulerRotation::new(x, y, z);
+        e.into()
+    }
+    pub fn from_euler_vec(v: Vector) -> Quaternion {
+        let e: EulerRotation = v.into();
+        e.into()
     }
     pub fn identity() -> Quaternion {
         Quaternion::new(0.0, 0.0, 0.0, 1.0)
@@ -48,7 +56,7 @@ impl From<EulerRotation> for Quaternion {
         let (cx, sx) = ((e.x * 0.5).cos(), (e.x * 0.5).sin());
         let (cy, sy) = ((e.y * 0.5).cos(), (e.y * 0.5).sin());
         let (cz, sz) = ((e.z * 0.5).cos(), (e.z * 0.5).sin());
-        
+
         let x = sx * cy * cz - cx * sy * sz;
         let y = cx * sy * cz + sx * cy * sz;
         let z = cx * cy * sz - sx * sy * cz;

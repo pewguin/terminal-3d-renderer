@@ -1,5 +1,5 @@
-use crate::geometry::vertex::Vertex;
-use crate::geometry::triangle::Triangle;
+use crate::math::vertex::Vertex;
+use crate::math::triangle::Triangle;
 use crate::rendering::camera::Camera;
 use crate::math::geometry::signed_area;
 use crate::math::projection_type::ProjectionType;

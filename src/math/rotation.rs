@@ -1,5 +1,5 @@
-use crate::geometry::vector::Vector;
-use crate::geometry::vertex::Vertex;
+use crate::math::vector::Vector;
+use crate::math::vertex::Vertex;
 
 pub trait Rotation {
     fn rotate_vector(&self, v: Vector) -> Vector;

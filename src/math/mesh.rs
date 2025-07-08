@@ -1,9 +1,9 @@
 use std::ops;
 use std::path::Path;
-use crate::geometry::rotation::Rotation;
-use crate::geometry::triangle::Triangle;
-use crate::geometry::vector::Vector;
-use crate::geometry::vertex::Vertex;
+use crate::math::rotation::Rotation;
+use crate::math::triangle::Triangle;
+use crate::math::vector::Vector;
+use crate::math::vertex::Vertex;
 
 #[derive(Debug, Clone)]
 pub struct Mesh {

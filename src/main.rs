@@ -2,7 +2,7 @@ mod rendering;
 mod geometry;
 mod math;
 mod debug;
-mod game;
+mod interface;
 mod parser;
 
 use std::cmp::Ordering;
@@ -14,18 +14,18 @@ use std::time::Duration;
 use termion::event::Key;
 use termion::input::TermRead;
 use rendering::screen_buffer::ScreenBuffer;
-use crate::debug::debug_logger::{get_logs, log};
-use crate::game::move_mode::MoveMode;
-use crate::geometry::euler_rotation::EulerRotation;
-use crate::geometry::quaternion::Quaternion;
-use crate::geometry::triangle::Triangle;
-use crate::geometry::vector::Vector;
-use crate::geometry::vertex::Vertex;
+use crate::debug::debug_logger::{get_logs, log, log_disp};
+use crate::interface::move_mode::MoveMode;
+use math::euler_rotation::EulerRotation;
+use math::triangle::Triangle;
+use math::vector::Vector;
+use math::vertex::Vertex;
 use rendering::camera::Camera;
-use crate::geometry::mesh::Mesh;
+use math::mesh::Mesh;
+use crate::interface::input::Input;
+use crate::interface::input_context::InputContext;
 use crate::math::projection_type::ProjectionType;
 use crate::rendering::point::Point;
-use crate::rendering::rasterizer::draw_triangle;
 use crate::rendering::render_buffer::RenderBuffer;
 use crate::rendering::stroke::Stroke;
 
@@ -52,11 +52,12 @@ fn main() {
     
     let mut cam = Camera::new(Vertex::new(0.0, 0.0, -50.0), screen_buffer.width, screen_buffer.height);
     let mut render_buffer = RenderBuffer::new();
+    let mut input = Input::new();
 
     let size = 20.0;
     let mut time = 0.0;
-    let mut d_rot = 0.1;
-    let mut d_pos = 1.0;
+    let mut rot = 0.1;
+    let mut pos = 1.0;
     let mut prj_type = ProjectionType::Perspective;
     let mut mv_mode = MoveMode::Rotation;
 
@@ -82,70 +83,26 @@ fn main() {
     );
 
     'frame: loop {
-        let mut d_rot_t = EulerRotation::zero();
-        let mut d_pos_t = Vector::zero();
+        let ctx = &mut InputContext {
+            camera: &mut cam,
+            mesh: &mut tetrahedron,
+            projection_type: &mut prj_type,
+            exit: &mut false,
+        };
+        
         while let Some(Ok(key)) = stdin.next() {
-            match key {
-                Key::Ctrl('c') => break 'frame,
-                Key::Char('d') => {
-                    match mv_mode {
-                        MoveMode::Rotation => d_rot_t.y += d_rot,
-                        MoveMode::Movement => d_pos_t.x += d_pos
-                    }
-                },
-                Key::Char('a') => {
-                    match mv_mode {
-                        MoveMode::Rotation => d_rot_t.y -= d_rot,
-                        MoveMode::Movement => d_pos_t.x -= d_pos
-                    }
-                },
-                Key::Char('w') => {
-                    match mv_mode {
-                        MoveMode::Rotation => d_rot_t.x += d_rot,
-                        MoveMode::Movement => d_pos_t.z += d_pos
-                    }
-                },
-                Key::Char('s') => {
-                    match mv_mode {
-                        MoveMode::Rotation => d_rot_t.x -= d_rot,
-                        MoveMode::Movement => d_pos_t.z -= d_pos
-                    }
-                },
-                Key::Char('e') => d_rot_t.z += d_rot,
-                Key::Char('q') => d_rot_t.z -= d_rot,
-                Key::Char('p') => prj_type = match prj_type {
-                    ProjectionType::Perspective => ProjectionType::Orthographic,
-                    ProjectionType::Orthographic => ProjectionType::Perspective,
-                },
-                Key::Up => {
-                    match mv_mode {
-                        MoveMode::Rotation => d_rot += 0.01,
-                        MoveMode::Movement => d_pos += 1.0,
-                    }
-                },
-                Key::Down => {
-                    match mv_mode {
-                        MoveMode::Rotation => d_rot -= 0.01,
-                        MoveMode::Movement => d_pos += 1.0,
-                    }
-                }
-
-                Key::Char('m') => mv_mode = match mv_mode {
-                    MoveMode::Rotation => MoveMode::Movement,
-                    MoveMode::Movement => MoveMode::Rotation,
-                },
-                _ => {}
-            }
+            input.process_key(key, ctx);
+        }
+        
+        if *ctx.exit {
+            break 'frame
         }
 
-        cam.mv(d_pos_t);
-        tetrahedron = tetrahedron.rotate(&d_rot_t);
         render_buffer.add_mesh_worldspace(&tetrahedron, &cam);
         render_buffer.flush_meshes_to_buffer(&mut screen_buffer, &prj_type, &cam);
         render_buffer.clear();
 
-        log(0, d_rot);
-        log(1, d_pos);
+        log_disp(1, &input);
         log(2, &prj_type);
         log(3, &mv_mode);
 

@@ -1,4 +1,4 @@
-use crate::geometry::vertex::Vertex;
+use crate::math::vertex::Vertex;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Point{

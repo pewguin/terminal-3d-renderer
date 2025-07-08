@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use crate::debug::debug_logger::log;
-use crate::geometry::mesh::Mesh;
-use crate::geometry::triangle::Triangle;
+use crate::math::mesh::Mesh;
+use crate::math::triangle::Triangle;
 use crate::math::projection_type::ProjectionType;
 use crate::rendering::camera::Camera;
 use crate::rendering::rasterizer::draw_triangle;

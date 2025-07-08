@@ -1,4 +1,5 @@
-use crate::geometry::vertex::Vertex;
+use std::ops::Mul;
+use crate::math::vertex::Vertex;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -52,5 +53,12 @@ impl Into<Vertex> for Vector {
 impl From<Vertex> for Vector {
     fn from(v: Vertex) -> Vector {
         Vector::new(v.x, v.y, v.z)
+    }
+}
+
+impl Mul<f32> for Vector {
+    type Output = Vector;
+    fn mul(self, rhs: f32) -> Vector {
+        Self::new(self.x * rhs, self.y * rhs, self.z * rhs)
     }
 }

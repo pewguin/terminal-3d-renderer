@@ -1,7 +1,7 @@
 use std::ops;
-use crate::geometry::rotation::Rotation;
-use crate::geometry::vector::Vector;
-use crate::geometry::vertex::Vertex;
+use crate::math::rotation::Rotation;
+use crate::math::vector::Vector;
+use crate::math::vertex::Vertex;
 use crate::rendering::stroke::Stroke;
 
 #[derive(Debug, Copy, Clone)]

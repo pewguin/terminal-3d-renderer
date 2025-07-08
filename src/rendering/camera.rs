@@ -1,7 +1,7 @@
 use crate::debug::debug_logger::log;
-use crate::geometry::triangle::Triangle;
-use crate::geometry::vector::Vector;
-use crate::geometry::vertex::Vertex;
+use crate::math::triangle::Triangle;
+use crate::math::vector::Vector;
+use crate::math::vertex::Vertex;
 use crate::math::projection_type::ProjectionType;
 use crate::rendering::point::Point;
 
