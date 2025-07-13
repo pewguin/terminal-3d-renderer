@@ -11,6 +11,8 @@ use crate::math::vector::Vector;
 pub struct Object {
     pub base_mesh: Mesh,
     pub active_commands: Vec<ActiveCommand>,
+    rotation: Quaternion,
+    position: Vector,
 }
 
 impl Object {
@@ -18,6 +20,8 @@ impl Object {
         Object {
             base_mesh: m,
             active_commands: Vec::new(),
+            rotation: Quaternion::identity(),
+            position: Vector::new(0.0, 0.0, 0.0),
         }
     }
     pub fn add_command(&mut self, command: ActiveCommand) {
@@ -25,13 +29,13 @@ impl Object {
     }
     // The time that passes tells me many lovely things
     pub fn pass_time(&mut self, time: Duration) {
-        for cmd in &mut self.active_commands {
+        for cmd in self.active_commands.iter_mut() {
             cmd.time_passed += time;
         }
     }
     pub fn apply_commands(&mut self) -> Mesh {
-        let mut total_translation = Vector::zero();
-        let mut total_rotation = Quaternion::identity();
+        let mut total_translation = self.position;
+        let mut total_rotation = self.rotation;
         let mut over = false;
 
         for cmd in &self.active_commands {
@@ -58,9 +62,10 @@ impl Object {
 
             translation *= coef;
             rotation = Quaternion::identity().slerp(rotation, coef);
-
+            
             if over {
-                self.base_mesh = self.base_mesh.translate(&translation).rotate(&rotation);
+                self.position += translation;
+                self.rotation = self.rotation * rotation;
             }
             else {
                 total_translation += translation;
@@ -72,11 +77,13 @@ impl Object {
            match cmd.interpolation {
                InterpolationMode::Instant => false,
                InterpolationMode::Continuous => true,
-               InterpolationMode::Linear { duration } => cmd.time_passed.as_secs_f32() > duration.as_secs_f32(),
+               InterpolationMode::Linear { duration } => {
+                   duration.as_secs_f32() > cmd.time_passed.as_secs_f32()
+               },
                InterpolationMode::Oscillation { .. } => true,
            }
         });
 
-        self.base_mesh.clone().translate(&total_translation).rotate(&total_rotation)
+        self.base_mesh.clone().rotate(&total_rotation).translate(&total_translation)
     }
 }
