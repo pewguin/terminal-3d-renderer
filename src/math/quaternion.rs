@@ -43,6 +43,53 @@ impl Quaternion {
     pub fn normalized(&self) -> Quaternion {
         *self / self.len()
     }
+    
+    fn dot(self, other: &Quaternion) -> f32 {
+        self.w * other.w + self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    pub fn slerp(&self, q2: Quaternion, t: f32) -> Quaternion {
+        let mut q1 = self.normalized();
+        let mut q2 = q2.normalized();
+
+        let mut dot = q1.dot(&q2);
+
+        // If dot < 0, slerp the long way around the sphere
+        if dot < 0.0 {
+            dot = -dot;
+            q2 = -q2;
+        }
+
+        const EPSILON: f32 = 1e-6;
+
+        if dot > 1.0 - EPSILON {
+            // If angle is small, use lerp and normalize
+            let lerped = Quaternion {
+                w: q1.w + t * (q2.w - q1.w),
+                x: q1.x + t * (q2.x - q1.x),
+                y: q1.y + t * (q2.y - q1.y),
+                z: q1.z + t * (q2.z - q1.z),
+            };
+            return lerped.normalized();
+        }
+
+        let theta_0 = dot.acos();          // angle between q1 and q2
+        let theta = theta_0 * t;           // angle between q1 and result
+
+        let sin_theta = theta.sin();
+        let sin_theta_0 = theta_0.sin();
+
+        let s1 = ((theta_0 - theta).sin()) / sin_theta_0;
+        let s2 = sin_theta / sin_theta_0;
+
+        Quaternion {
+            w: q1.w * s1 + q2.w * s2,
+            x: q1.x * s1 + q2.x * s2,
+            y: q1.y * s1 + q2.y * s2,
+            z: q1.z * s1 + q2.z * s2,
+        }
+    }
+
 }
 
 impl Rotation for Quaternion {
@@ -110,5 +157,35 @@ impl ops::Div<f32> for Quaternion {
     type Output = Quaternion;
     fn div(self, rhs: f32) -> Quaternion {
         self * (1.0 / rhs)
+    }
+}
+
+impl ops::Neg for Quaternion {
+    type Output = Quaternion;
+    fn neg(self) -> Quaternion {
+        Quaternion::new(-self.x, -self.y, -self.z, -self.w)
+    }
+}
+
+impl From<Quaternion> for EulerRotation {
+    fn from(q: Quaternion) -> Self {
+        let q = q.normalized();
+
+        let sinr_cosp = 2.0 * (q.w * q.x + q.y * q.z);
+        let cosr_cosp = 1.0 - 2.0 * (q.x * q.x + q.y * q.y);
+        let roll = sinr_cosp.atan2(cosr_cosp);
+
+        let sinp = 2.0 * (q.w * q.y - q.z * q.x);
+        let pitch = if sinp.abs() >= 1.0 {
+            std::f32::consts::FRAC_PI_2.copysign(sinp)
+        } else {
+            sinp.asin()
+        };
+
+        let siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
+        let cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+        let yaw = siny_cosp.atan2(cosy_cosp);
+
+        EulerRotation::new(roll, pitch, yaw)
     }
 }

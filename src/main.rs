@@ -25,6 +25,7 @@ use math::mesh::Mesh;
 use crate::interface::input::Input;
 use crate::interface::input_context::InputContext;
 use crate::math::projection_type::ProjectionType;
+use crate::rendering::object::Object;
 use crate::rendering::point::Point;
 use crate::rendering::render_buffer::RenderBuffer;
 use crate::rendering::stroke::Stroke;
@@ -81,26 +82,29 @@ fn main() {
             v.2, v.1, v.3,
             Stroke::new([255, 0, 255], '█'))]
     );
+    let mut tetrahedron = Object::new(tetrahedron);
+    
+    render_buffer.add_mesh_worldspace(tetrahedron, &cam);
 
     'frame: loop {
         let ctx = &mut InputContext {
             camera: &mut cam,
-            mesh: &mut tetrahedron,
+            buffer: &mut render_buffer,
             projection_type: &mut prj_type,
             exit: &mut false,
         };
-        
+
         while let Some(Ok(key)) = stdin.next() {
             input.process_key(key, ctx);
         }
-        
+
         if *ctx.exit {
             break 'frame
         }
-
-        render_buffer.add_mesh_worldspace(&tetrahedron, &cam);
-        render_buffer.flush_meshes_to_buffer(&mut screen_buffer, &prj_type, &cam);
-        render_buffer.clear();
+        
+        render_buffer.pass_obj_time(FRAME_TIME);
+        RenderBuffer::write_meshes_to_buffer(render_buffer.meshes_from_objects(),
+            &mut screen_buffer, &prj_type, &cam);
 
         log_disp(1, &input);
         log(2, &prj_type);

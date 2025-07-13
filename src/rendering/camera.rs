@@ -18,7 +18,6 @@ impl Camera {
     }
     pub fn mv(&mut self, v: Vector) {
         self.origin = self.origin + v;
-        log(4, self.origin);
     }
     pub fn project(&self, v: Vertex, prj_type: &ProjectionType) -> Point {
         let center_x = self.screen_width as f32 / 2.0;
@@ -28,7 +27,6 @@ impl Camera {
         let p = match prj_type {
             ProjectionType::Perspective => {
                 let f = 1.0 / (self.fov / 2.0).tan();
-                log(2, v.z);
                 (v.x * f * SCALE / -v.z,
                 v.y * f * SCALE / -v.z)
             }

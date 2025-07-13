@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::fmt::Display;
 use std::time::Duration;
+use regex::Regex;
 use termion::event::Key;
 use crate::debug::debug_logger::{log, log_disp};
 use crate::math::euler_rotation::EulerRotation;
@@ -8,24 +9,25 @@ use crate::math::vector::Vector;
 use crate::interface::input_context::InputContext;
 use crate::math::quaternion::Quaternion;
 
-const AXIS_LETTERS: [char; 3] = ['x', 'y', 'z'];
-const RECOGNIZED_COMMANDS: [char; 3] = [ 'm', 'r', 's'];
-
-enum Command {
-    Move { delta: Vector, mode: InterpolationMode },
-    Rotate { delta: Quaternion, mode: InterpolationMode },
+#[derive(Debug, Clone, Copy)]
+pub enum CommandType {
+    Move { delta: Vector },
+    Rotate { delta: Quaternion },
 }
 
-enum InterpolationMode {
+#[derive(Debug, Clone, Copy)]
+pub enum InterpolationMode {
     Instant,
     Linear { duration: Duration },
     Continuous,
     Oscillation { period: Duration },
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct ActiveCommand {
-    command: Command,
-    time: Duration,
+    pub command: CommandType,
+    pub interpolation: InterpolationMode,
+    pub time_passed: Duration,
 }
 
 #[derive(Debug)]
@@ -47,25 +49,9 @@ impl Input {
         if let Key::Char(c) = k {
             if c == '\n' {
                 match self.parse_command() {
-                    Ok(cmd) => {
-                        match cmd {
-                            Command::Move { delta, mode } => {
-                                match mode {
-                                    InterpolationMode::Instant => *ctx.mesh = ctx.mesh.translate(&delta),
-                                    _ => {}
-                                }
-                            }
-                            Command::Rotate { delta, mode } => {
-                                match mode {
-                                    InterpolationMode::Instant => *ctx.mesh = ctx.mesh.rotate(&delta),
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => log_disp(5, e)
+                    Ok(command) => ctx.buffer.add_command_to_obj(command, 0),
+                    Err(e) => log(0, e.to_string()),
                 }
-                self.command.clear();
             }
             else {
                 self.command.push(c);
@@ -107,43 +93,66 @@ impl Input {
     fn get_history(&self, i: usize) -> String {
         self.history.get(i.max(1) - 1).unwrap().clone()
     }
-    fn parse_command(&mut self) -> Result<Command, String> {
-        let cmd: Command;
-        let cmd_str = self.command.clone();
-        let pfx = self.command.remove(0);
-        if !RECOGNIZED_COMMANDS.contains(&pfx) {
-            return Err("command not recognized".to_string());
-        }
-        let mut c = match self.command.chars().nth(0) {
-            Some(c) => c,
-            None => return Err("missing axis".to_string()),
+    fn parse_command(&mut self) -> Result<ActiveCommand, String> {
+        let err = Err(format!("error parsing command '{}'", self.command.clone()));
+        // G1: movement type
+        // G2: axis/axes
+        // G3: delta
+        // G4: interpolation mode
+        // G5: interpolation parameter
+        let regex = Regex::new(r"^([mr])([xyz]+)([\d.-]+)([cl])?([\d.-]+)?$").unwrap();
+        let caps = match regex.captures(&self.command) {
+            Some(caps) => caps,
+            None => return err
         };
-        let mut delta_vec = Vector::zero();
-        while AXIS_LETTERS.contains(&c) {
-            self.command.remove(0);
+
+        let mut vec = Vector::zero();
+        for c in caps[2].chars() {
             match c {
-                'x' => delta_vec.x += 1.0,
-                'y' => delta_vec.y += 1.0,
-                'z' => delta_vec.z += 1.0,
-                _ => {}
+                'x' => vec.x = 1.0,
+                'y' => vec.y = 1.0,
+                'z' => vec.z = 1.0,
+                _ => return err
             }
-            c = self.command.chars().nth(0).unwrap();
+        }
+
+        let scale = match caps[3].parse::<f32>() {
+            Ok(val) => val,
+            Err(_) => return err
         };
-        
-        let rtr = Ok(match self.command.parse::<f32>() {
-            Ok(v) => {
-                match pfx {
-                    'm' => Command::Move { delta: delta_vec * v, mode: InterpolationMode::Instant },
-                    'r' => Command::Rotate { delta: Quaternion::from_euler_vec(delta_vec * v.to_radians()), mode: InterpolationMode::Instant },
-                    _ => panic!("theoretically impossible to get this error message.")
-                }
-                
-            }
-            Err(e) => return Err(format!("could not parse delta, read as {}", self.command)),
-        });
-        self.add_history(cmd_str);
+
+        let dur = match caps.get(5) {
+            Some(s) => Duration::from_secs_f32( match s.as_str().parse::<f32>() {
+                Ok(val) => val,
+                Err(_) => return err
+            }),
+            None => Duration::from_secs(0)
+        };
+        let interpolation = match caps.get(4) {
+            Some(i) => match i.as_str() {
+                "l" => InterpolationMode::Linear { duration: dur },
+                "c" => InterpolationMode::Continuous,
+                _ => return err
+            },
+            None => InterpolationMode::Instant
+        };
+
+        let cmd = match &caps[1] {
+            "m" => CommandType::Move { delta: vec * scale },
+            "r" => CommandType::Rotate { delta: Quaternion::from_euler_vec(vec * scale.to_radians()) },
+            _ => return err
+        };
+
+        self.add_history(self.command.clone());
         self.command.clear();
-        rtr
+
+        Ok(
+            ActiveCommand {
+                command: cmd,
+                interpolation,
+                time_passed: Default::default(),
+            }
+        )
     }
 }
 

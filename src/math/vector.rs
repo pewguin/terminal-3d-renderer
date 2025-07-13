@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::{AddAssign, Mul, MulAssign};
 use crate::math::vertex::Vertex;
 
 #[derive(Debug, Copy, Clone)]
@@ -60,5 +60,21 @@ impl Mul<f32> for Vector {
     type Output = Vector;
     fn mul(self, rhs: f32) -> Vector {
         Self::new(self.x * rhs, self.y * rhs, self.z * rhs)
+    }
+}
+
+impl MulAssign<f32> for Vector {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
+    }
+}
+
+impl AddAssign<Vector> for Vector {
+    fn add_assign(&mut self, rhs: Vector) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
     }
 }

@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::{AddAssign, Mul, MulAssign};
 use crate::math::rotation::Rotation;
 use crate::math::vector::Vector;
 use crate::math::vertex::Vertex;
@@ -37,5 +37,21 @@ impl Mul<f32> for EulerRotation {
     type Output = EulerRotation;
     fn mul(self, rhs: f32) -> Self::Output {
         EulerRotation::new(self.x * rhs, self.y * rhs, self.z * rhs)
+    }
+}
+
+impl AddAssign<EulerRotation> for EulerRotation {
+    fn add_assign(&mut self, rhs: EulerRotation) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl MulAssign<f32> for EulerRotation {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
     }
 }
