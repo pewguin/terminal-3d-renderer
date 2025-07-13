@@ -30,3 +30,10 @@ impl ops::Add<Vector> for Mesh {
         Self::new(self.tris.iter().map(|t| *t + rhs).collect())
     }
 }
+
+impl ops::Mul<f32> for Mesh {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::new(self.tris.iter().map(|t| *t * rhs).collect())
+    }
+}

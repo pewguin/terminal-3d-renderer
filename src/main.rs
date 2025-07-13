@@ -9,6 +9,7 @@ use std::cmp::Ordering;
 use termion::{async_stdin, raw::IntoRawMode, terminal_size};
 use std::io::{Write, stdin, stdout, Read};
 use std::panic;
+use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 use termion::event::Key;
@@ -24,6 +25,7 @@ use rendering::camera::Camera;
 use math::mesh::Mesh;
 use crate::interface::input::Input;
 use crate::interface::input_context::InputContext;
+use crate::interface::parser::parse_mesh;
 use crate::math::projection_type::ProjectionType;
 use crate::rendering::object::Object;
 use crate::rendering::point::Point;
@@ -61,31 +63,21 @@ fn main() {
     let mut pos = 1.0;
     let mut prj_type = ProjectionType::Perspective;
     let mut mv_mode = MoveMode::Rotation;
-
-    let v = (
-        Vertex::new(size, size, size),
-        Vertex::new(-size, -size, size),
-        Vertex::new(-size, size, -size),
-        Vertex::new(size, -size, -size),
-    );
-    let mut tetrahedron = Mesh::new(vec![
-        Triangle::from_vertexes(
-            v.0, v.1, v.2,
-            Stroke::new([255, 0, 0], '█')),
-        Triangle::from_vertexes(
-            v.0, v.3, v.1,
-            Stroke::new([0, 255, 0], '█')),
-        Triangle::from_vertexes(
-            v.2, v.3, v.0,
-            Stroke::new([0, 0, 255], '█')),
-        Triangle::from_vertexes(
-            v.2, v.1, v.3,
-            Stroke::new([255, 0, 255], '█'))]
-    );
-    let mut tetrahedron = Object::new(tetrahedron);
     
-    render_buffer.add_mesh_worldspace(tetrahedron, &cam);
-
+    let tetrahedron_mesh = match parse_mesh(&Path::new("assets/tetrahedron.obj")) {
+        Ok(mesh) => mesh,
+        Err(e) => panic!("{}", e)
+    };
+    let tetrahedron = Object::new(tetrahedron_mesh * size);
+    // render_buffer.add_mesh_worldspace(tetrahedron, &cam);
+    
+    let cube_mesh = match parse_mesh(&Path::new("assets/torus.obj")) {
+        Ok(mesh) => mesh,
+        Err(e) => panic!("{}", e)
+    };
+    let cube = Object::new(cube_mesh * size);
+    render_buffer.add_mesh_worldspace(cube, &cam);
+    
     'frame: loop {
         let ctx = &mut InputContext {
             camera: &mut cam,

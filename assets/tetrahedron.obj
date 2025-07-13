@@ -1,0 +1,11 @@
+# Vertices
+v 1 1 1
+v -1 -1 1
+v -1 1 -1
+v 1 -1 -1
+
+# Faces (triangles)
+f 1 2 3
+f 1 4 2
+f 3 4 1
+f 3 2 4

@@ -13,6 +13,9 @@ impl Vertex {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
+    pub fn zero() -> Self {
+        Self { x: 0.0, y: 0.0, z: 0.0 }
+    }
 }
 
 impl PartialOrd for Vertex {
@@ -45,5 +48,11 @@ impl ops::Add<Vector> for Vertex {
     type Output = Vertex;
     fn add(self, rhs: Vector) -> Vertex {
         Vertex::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+    }
+}
+impl ops::Mul<f32> for Vertex {
+    type Output = Vertex;
+    fn mul(self, rhs: f32) -> Vertex {
+        Vertex::new(self.x * rhs, self.y * rhs, self.z * rhs)
     }
 }

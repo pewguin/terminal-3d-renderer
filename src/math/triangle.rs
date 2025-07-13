@@ -36,3 +36,9 @@ impl ops::Add<Vector> for Triangle {
         Triangle::from_array(self.verts.map(|v| v + rhs), self.stroke)
     }
 }
+impl ops::Mul<f32> for Triangle {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self {
+        Self::from_array(self.verts.map(|v| v * rhs), self.stroke)
+    }
+}
