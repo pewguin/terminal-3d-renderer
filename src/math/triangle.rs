@@ -28,6 +28,9 @@ impl Triangle {
         let vs = self.verts.map(|v| r.rotate_vertex(v));
         Self::from_array(vs, self.stroke)
     }
+    pub fn with_stroke(&self, stroke: Stroke) -> Triangle {
+        Self { verts: self.verts, stroke }
+    }
 }
 
 impl ops::Add<Vector> for Triangle {

@@ -27,7 +27,7 @@ impl Camera {
         let p = match prj_type {
             ProjectionType::Perspective => {
                 let f = 1.0 / (self.fov / 2.0).tan();
-                (v.x * f * SCALE / -v.z,
+                (v.x * f * SCALE / v.z,
                 v.y * f * SCALE / -v.z)
             }
             ProjectionType::Orthographic => {
@@ -37,8 +37,8 @@ impl Camera {
         };
 
         Point::new(
-            (p.0 * 2.0 + center_x).round() as i32,
-            (p.1 + center_y).round() as i32
+            (p.0 * 2.0 + center_x).round(),
+            (p.1 + center_y).round()
         )
     }
 }

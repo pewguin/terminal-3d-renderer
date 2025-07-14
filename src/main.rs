@@ -63,20 +63,32 @@ fn main() {
     let mut pos = 1.0;
     let mut prj_type = ProjectionType::Perspective;
     let mut mv_mode = MoveMode::Rotation;
-    
+
     let tetrahedron_mesh = match parse_mesh(&Path::new("assets/tetrahedron.obj")) {
         Ok(mesh) => mesh,
         Err(e) => panic!("{}", e)
     };
     let tetrahedron = Object::new(tetrahedron_mesh * size);
     // render_buffer.add_mesh_worldspace(tetrahedron, &cam);
-    
+
     let cube_mesh = match parse_mesh(&Path::new("assets/torus.obj")) {
         Ok(mesh) => mesh,
         Err(e) => panic!("{}", e)
     };
     let cube = Object::new(cube_mesh * size);
     render_buffer.add_mesh_worldspace(cube, &cam);
+
+    let red = Stroke::new([255, 0, 0], '█');
+    let blue = Stroke::new([0, 0, 255], '█');
+    let t = Triangle::from_vertexes(
+        Vertex::new(-1.0, -1.0, 0.0),
+        Vertex::new(1.0, -1.0, 0.0),
+        Vertex::new(0.0, 1.0, 0.0),
+        red
+    ) * 10.0;
+    let m = Mesh::new([t + Vector::new(10.0, 0.0, 0.0), t.with_stroke(blue) + Vector::new(-10.0, 0.0, 0.0)].to_vec());
+    let o = Object::new(m);
+    // render_buffer.add_mesh_worldspace(o, &cam);
     
     'frame: loop {
         let ctx = &mut InputContext {
@@ -103,7 +115,7 @@ fn main() {
         log(3, &mv_mode);
 
         for l in get_logs(screen_buffer.height) {
-            screen_buffer.fill_string(l.1.as_str(), Point::new(1, l.0 - 1));
+            screen_buffer.fill_string(l.1.as_str(), Point::new(1.0, l.0 as f32 - 1.0));
         }
         screen_buffer.write(&mut stdout);
         screen_buffer.clear();
