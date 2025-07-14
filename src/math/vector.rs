@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, Mul, MulAssign};
+use std::ops::{AddAssign, Div, Mul, MulAssign};
 use crate::math::vertex::Vertex;
 
 #[derive(Debug, Copy, Clone)]
@@ -15,32 +15,21 @@ impl Vector {
     pub fn zero() -> Vector {
         Vector::new(0.0, 0.0, 0.0)
     }
-    pub fn rotate_x(&self, radians: f32) -> Vector {
-        let sin = radians.sin();
-        let cos = radians.cos();
-        Vector {
-            x: self.x,
-            y: self.y * cos - self.z * sin,
-            z: self.y * sin + self.z * cos,
-        }
+    pub fn dot(&self, other: Vector) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
-    pub fn rotate_y(&self, radians: f32) -> Vector {
-        let sin = radians.sin();
-        let cos = radians.cos();
-        Vector {
-            x: self.x * cos + self.z * sin,
-            y: self.y,
-            z: -self.x * sin + self.z * cos,
-        }
+    pub fn len(&self) -> f32 {
+        self.dot(*self).sqrt()
     }
-    pub fn rotate_z(&self, radians: f32) -> Vector {
-        let sin = radians.sin();
-        let cos = radians.cos();
-        Vector {
-            x: self.x * cos - self.y * sin,
-            y: self.x * sin + self.y * cos,
-            z: self.z,
-        }
+    pub fn normalized(&self) -> Vector {
+        *self / self.len()
+    }
+    pub fn cross(self, other: Vector) -> Vector {
+        Self::new(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
     }
 }
 
@@ -60,6 +49,12 @@ impl Mul<f32> for Vector {
     type Output = Vector;
     fn mul(self, rhs: f32) -> Vector {
         Self::new(self.x * rhs, self.y * rhs, self.z * rhs)
+    }
+}
+impl Div<f32> for Vector {
+    type Output = Vector;
+    fn div(self, rhs: f32) -> Vector {
+        Self::new(self.x / rhs, self.y / rhs, self.z / rhs)
     }
 }
 

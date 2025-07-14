@@ -35,10 +35,10 @@ impl RenderBuffer {
     pub fn order_tris_by_z(mut tris: Vec<Triangle>) -> Vec<Triangle> {
         tris.sort_by(|t, o| {
             if t.avg_z() > o.avg_z() {
-                return Ordering::Greater
+                return Ordering::Less
             }
             else if t.avg_z() < o.avg_z() {
-                return Ordering::Less
+                return Ordering::Greater
             }
             Ordering::Equal
         });

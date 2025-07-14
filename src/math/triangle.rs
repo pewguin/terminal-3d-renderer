@@ -31,6 +31,11 @@ impl Triangle {
     pub fn with_stroke(&self, stroke: Stroke) -> Triangle {
         Self { verts: self.verts, stroke }
     }
+    pub fn normal(&self) -> Vector {
+        let ab: Vector = (self.verts[1] - self.verts[0]).into();
+        let ac: Vector = (self.verts[2] - self.verts[0]).into();
+        ab.cross(ac).normalized()
+    }
 }
 
 impl ops::Add<Vector> for Triangle {

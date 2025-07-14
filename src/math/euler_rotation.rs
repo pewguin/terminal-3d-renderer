@@ -1,4 +1,5 @@
 use std::ops::{AddAssign, Mul, MulAssign};
+use crate::math::quaternion::Quaternion;
 use crate::math::rotation::Rotation;
 use crate::math::vector::Vector;
 use crate::math::vertex::Vertex;
@@ -21,9 +22,8 @@ impl EulerRotation {
 }
 impl Rotation for EulerRotation {
     fn rotate_vector(&self, v: Vector) -> Vector {
-        let v = v.rotate_x(self.x);
-        let v = v.rotate_y(self.y);
-        v.rotate_z(self.z)
+        let q: Quaternion = v.into();
+        q * v
     }
 }
 

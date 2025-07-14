@@ -52,7 +52,7 @@ impl ScreenBuffer {
         for y in 0..self.height {
             for x in 0..self.width {
                 let s = self.buffer[self.index_of(x, y)];
-                output.push_str(&format!("{}{}", s, Goto(x + 1, y + 1)));
+                output.push_str(&format!("{}{}", s.as_str(), Goto(x + 1, y + 1)));
                 output.push(s.tex)
             }
         }
